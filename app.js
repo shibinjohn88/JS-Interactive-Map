@@ -1,15 +1,20 @@
 
-
+let myMap
 
 
 //UI submit button event listener
 document.querySelector('#submit').addEventListener('click', showBusiness)
 
-function showBusiness() {
+async function showBusiness() {
     event.preventDefault()
     let value = document.querySelector('#business').value
-    console.log(value)
-    console.log(event)
+    // console.log(value)
+    let business = await getBusiness(value)
+    // console.log(business.results)
+    let places = mapBusiness(business.results)
+    addPlaces(places)
+    
+   
 }
 
 //get users coordinates
@@ -22,13 +27,53 @@ async function getUserCoordinates() {
 
 }
 
+async function getBusiness(business) {
+    const options = {
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          Authorization: 'your api key'
+        }
+      };
+      let limit = 3
+      let radius = 100
+      let cord = await getUserCoordinates() 
+      let latitude = cord[0]
+      let longitude = cord[1]
+      // console.log(latitude, longitude)
+      let response = await fetch(`https://api.foursquare.com/v3/places/search?query=${business}&limit=${limit}&ll=${latitude}%2C${longitude}&${radius}`, options)
+      let result = await response.text()
+      let busLocations = await JSON.parse(result)
+      return busLocations
+}
 
+// map fetched business locations to a map
+function mapBusiness(data) {
+  let places = data.map((element) => {
+		let location = {
+			name: element.name,
+			lat: element.geocodes.main.latitude,
+			long: element.geocodes.main.longitude
+		};
+		return location
+	})
+	return places
 
+} 
 
+//add business places to map
+function addPlaces(places) {
+  for (let i = 0; i < places.length; i++) {
+    let marker = L.marker([places[i].lat, places[i].long])
+    marker.addTo(myMap).bindPopup(`<p1>${places[i].name}</p1>`).openPopup()
+  }
+}
+    
+    
 window.onload = async () => {
 
     //create a map with tile
-    const myMap = L.map('map', {
+     myMap = L.map('map', {
         center: await getUserCoordinates(),
         zoom: 12,
     });
@@ -39,7 +84,7 @@ window.onload = async () => {
     }).addTo(myMap)
 
     const marker = L.marker(await getUserCoordinates())
-    marker.addTo(myMap).bindPopup('<p1><b>You are here!</b></p1>').openPopup()
+    marker.addTo(myMap).bindPopup('<p1><b>You are here</b></p1>').openPopup()
 
 }
 
